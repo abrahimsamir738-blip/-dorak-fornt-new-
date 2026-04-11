@@ -1,0 +1,7 @@
+{
+  "name": "Dorak - Real-time Medical Queue Tracking",
+  "description": "A medical booking platform that allows patients to track their clinic turn in real-time, reducing waiting room congestion and improving patient experience.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
