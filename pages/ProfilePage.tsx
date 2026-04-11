@@ -165,7 +165,7 @@ const ProfilePage: React.FC = () => {
 
            {/* رابط تتبع الحجز - يفتح صفحة الـ QueueDashboard */}
            <a
-            href={`http://localhost:3001/booking/${booking.id}`}
+            href={`https://paleturquoise-cassowary-158484.hostingersite.com/:3001/booking/${booking.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black px-6 py-3 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
