@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const API_BASE_URL = 'https://paleturquoise-cassowary-158484.hostingersite.com/api/api';
 
 // Create axios instance for website (no auth required)
 const api: AxiosInstance = axios.create({

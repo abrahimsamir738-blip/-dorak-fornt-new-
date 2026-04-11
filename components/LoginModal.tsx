@@ -42,7 +42,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
    const payload = isLoginView ? { phone } : { name, phone };
 
    // إرسال الطلب للـ Backend (Laravel)
-   const response = await axios.post(`http://localhost:8000${endpoint}`, payload);
+   const response = await axios.post(`https://paleturquoise-cassowary-158484.hostingersite.com/api/${endpoint}`, payload);
 
    if (response.data.status === 'success') {
     const userData = response.data.user;
