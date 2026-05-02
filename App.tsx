@@ -64,7 +64,7 @@ const App: React.FC = () => {
 
  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
  const [activeDoctor, setActiveDoctor] = useState<Doctor | null>(null);
-
+ const [showLogin, setShowLogin] = useState(false); // ← هنا
  // 3. Load doctors from API
  useEffect(() => {
   const loadDoctors = async () => {
@@ -172,19 +172,42 @@ const App: React.FC = () => {
  };
 
  // Create booking via API
- const handleConfirmBooking = async (name: string, phone: string, branch: Branch) => {
+ const handleConfirmBooking = async (
+  name: string,
+  phone: string,
+  branch: Branch,
+  selectedSlot: any,
+  visitType: 'checkup' | 'consultation'
+ ) => {
   try {
-   // Get today's date
-   const today = new Date().toISOString().split('T')[0];
+   const getNextDateForDay = (dayOfWeek: number): string => {
+    // النظام: 0=السبت، 1=الأحد، ... 6=الجمعة
+    // JavaScript: 0=الأحد، 1=الاثنين، ... 6=السبت
+    const jsToApp = [6, 0, 1, 2, 3, 4, 5]; // تحويل من نظامك لنظام JS
+    const targetJsDay = jsToApp[dayOfWeek];
 
-   // Create booking via API
+    const today = new Date();
+    const currentJsDay = today.getDay();
+
+    let daysUntilTarget = targetJsDay - currentJsDay;
+    if (daysUntilTarget < 0) daysUntilTarget += 7;
+    // لو نفس اليوم النهارده يبقى النهارده، غير كده أقرب يوم جاي
+
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + daysUntilTarget);
+
+    return targetDate.toISOString().split('T')[0];
+   };
+   const bookingDate = getNextDateForDay(selectedSlot.day_of_week);
+
+
    const response = await publicAPI.createBooking({
     clinic_id: parseInt(branch.id),
     doctor_id: parseInt(activeDoctor!.id),
     patient_name: name,
     phone_number: phone,
-    type: 'كشف', // Default to 'كشف'
-    date: today,
+    type: visitType === 'checkup' ? 'كشف' : 'استشارة', // ✅
+    date: bookingDate,
     notes: '',
    });
 

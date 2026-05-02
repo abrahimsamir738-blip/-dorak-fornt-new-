@@ -9,9 +9,12 @@ import {
  UserRound,
  Activity,
  Ear,
- //idney,
  Apple,
  Stethoscope,
+ Thermometer,
+ Wind,
+ Scissors,
+ Syringe,
 } from 'lucide-react';
 
 // ==================== تعريف الأنواع ====================
@@ -28,6 +31,10 @@ export enum SpecialtyType {
  PHYSIOTHERAPY = 'physiotherapy',
  ENT = 'ent',
  NUTRITION = 'nutrition',
+ INTERNAL_MEDICINE = 'internal_medicine',
+ CHEST = 'chest',
+ GENERAL_SURGERY = 'general_surgery',
+ ENDOCRINOLOGY = 'endocrinology',
 }
 
 // ==================== التخصصات مع الأيقونات ====================
@@ -39,11 +46,15 @@ export const SPECIALTIES = [
  { type: SpecialtyType.DENTAL, icon: 'Smile', color: 'text-cyan-600', name: 'أسنان' },
  { type: SpecialtyType.NEUROLOGY, icon: 'Brain', color: 'text-indigo-600', name: 'مخ وأعصاب' },
  { type: SpecialtyType.GYNECOLOGY, icon: 'UserRound', color: 'text-pink-600', name: 'نساء وتوليد' },
- { type: SpecialtyType.UROLOGY, icon: 'Kidney', color: 'text-teal-600', name: 'مسالك بولية' },
+ { type: SpecialtyType.UROLOGY, icon: 'Activity', color: 'text-teal-600', name: 'مسالك بولية' },
  { type: SpecialtyType.OPHTHALMOLOGY, icon: 'Eye', color: 'text-blue-500', name: 'رمد' },
  { type: SpecialtyType.PHYSIOTHERAPY, icon: 'Activity', color: 'text-orange-500', name: 'علاج طبيعي وتأهيل' },
  { type: SpecialtyType.ENT, icon: 'Ear', color: 'text-amber-600', name: 'أنف وأذن وحنجرة' },
  { type: SpecialtyType.NUTRITION, icon: 'Apple', color: 'text-emerald-600', name: 'تغذية' },
+ { type: SpecialtyType.INTERNAL_MEDICINE, icon: 'Thermometer', color: 'text-blue-800', name: 'باطنة' },
+ { type: SpecialtyType.CHEST, icon: 'Wind', color: 'text-sky-400', name: 'صدر' },
+ { type: SpecialtyType.GENERAL_SURGERY, icon: 'Scissors', color: 'text-slate-600', name: 'جراحة عامة' },
+ { type: SpecialtyType.ENDOCRINOLOGY, icon: 'Syringe', color: 'text-rose-500', name: 'غدد وسكر' },
 ];
 
 // ==================== الترجمة للعربية ====================
@@ -60,6 +71,10 @@ export const SPECIALTY_LABELS: Record<SpecialtyType, string> = {
  [SpecialtyType.PHYSIOTHERAPY]: 'علاج طبيعي وتأهيل',
  [SpecialtyType.ENT]: 'أنف وأذن وحنجرة',
  [SpecialtyType.NUTRITION]: 'تغذية',
+ [SpecialtyType.INTERNAL_MEDICINE]: 'باطنة',
+ [SpecialtyType.CHEST]: 'صدر',
+ [SpecialtyType.GENERAL_SURGERY]: 'جراحة عامة',
+ [SpecialtyType.ENDOCRINOLOGY]: 'غدد وسكر',
 };
 
 // ==================== دالة جلب الأيقونة ====================
@@ -74,8 +89,11 @@ export const getIcon = (iconName: string, size = 24, color = 'currentColor') => 
   UserRound: <UserRound size={size} color={color} />,
   Activity: <Activity size={size} color={color} />,
   Ear: <Ear size={size} color={color} />,
-  //dney: <Kidney size={size} color={color} />,
   Apple: <Apple size={size} color={color} />,
+  Thermometer: <Thermometer size={size} color={color} />,
+  Wind: <Wind size={size} color={color} />,
+  Scissors: <Scissors size={size} color={color} />,
+  Syringe: <Syringe size={size} color={color} />,
  };
  return icons[iconName] || <Stethoscope size={size} color={color} />;
 };
@@ -135,7 +153,7 @@ export const DOCTORS: Doctor[] = [
  },
 ];
 
-// تعريف نوع Doctor (لو مش موجود في types)
+// تعريف نوع Doctor
 export interface Doctor {
  id: string;
  name: string;

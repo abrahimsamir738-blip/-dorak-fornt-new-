@@ -17,6 +17,7 @@ export interface Doctor {
  title: string;
  bio: string;
  image: string;
+ photo: string;
  rating: number;
  reviewsCount: number;
  location: string;

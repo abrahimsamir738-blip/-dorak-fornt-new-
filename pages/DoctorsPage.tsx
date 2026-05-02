@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Search, UserSearch, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SpecialtyType, Doctor } from '../types';
 import { SPECIALTIES, SPECIALTY_LABELS, getIcon } from '../constants';
 import DoctorCard from '../components/DoctorCard';
 import { useData } from '../App';
 
+// دالة تنظيف النصوص للبحث الدقيق باللغة العربية
 const normalizeText = (text: string): string => {
  if (!text) return '';
  return text
@@ -33,28 +35,35 @@ const DoctorsPage: React.FC<DoctorsPageProps> = ({
  onBookNow
 }) => {
  const { doctors } = useData();
+ const [searchParams] = useSearchParams();
 
+ // --- منطق قراءة التخصص من الرابط (URL Query Params) ---
+ useEffect(() => {
+  const specFromUrl = searchParams.get('specialty') as SpecialtyType;
+  if (specFromUrl && specFromUrl !== selectedSpecialty) {
+   // إذا وجد تخصص في الرابط، نقوم بتحديث الحالة ليتم الفلترة
+   setSelectedSpecialty(specFromUrl);
+  }
+ }, [searchParams, setSelectedSpecialty]);
+
+ // منطق الفلترة (Memoized للحفاظ على الأداء)
  const filteredDoctors = useMemo(() => {
   let result = doctors;
 
-  // 1. منطق الأزرار الجانبية (تم تعديله ليبحث بالكلمة وليس فقط بالكود)
+  // 1. الفلترة بناءً على التخصص المختار (Sidebar أو URL)
   if (selectedSpecialty) {
    const specialtyLabel = normalizeText(SPECIALTY_LABELS[selectedSpecialty] || '');
 
    result = result.filter(doc => {
-    // التحقق من الكود البرمجي (المعيار الأصلي)
     const matchByCode = doc.specialty === selectedSpecialty;
-    // التحقق من الكلمة العربية في العنوان (لحل مشكلة الرمد)
     const matchByTitle = normalizeText(doc.title).includes(specialtyLabel);
-    // التحقق من الكلمة العربية في وصف التخصص (education field contains backend specialty string)
-    // The education field stores the original backend specialty string for exact matching
     const matchBySpecialtyField = normalizeText(doc.education || '').includes(specialtyLabel);
 
     return matchByCode || matchByTitle || matchBySpecialtyField;
    });
   }
 
-  // 2. منطق مربع البحث (Search Bar)
+  // 2. الفلترة بناءً على نص البحث (Search Bar)
   if (searchTerm && searchTerm.trim() !== '') {
    const normalizedTerm = normalizeText(searchTerm);
 
@@ -62,10 +71,8 @@ const DoctorsPage: React.FC<DoctorsPageProps> = ({
     const name = normalizeText(doc.name);
     const title = normalizeText(doc.title);
     const bio = normalizeText(doc.bio || '');
-    // Check education field which contains the backend specialty string
     const specialtyField = normalizeText(doc.education || '');
-    // Also check specialty label for enum-based search
-    const specialtyLabel = normalizeText(SPECIALTY_LABELS[doc.specialty] || '');
+    const specialtyLabel = normalizeText(SPECIALTY_LABELS[doc.specialty as SpecialtyType] || '');
     const clinicsInfo = doc.clinics?.map(c => normalizeText(c.name + c.address)).join(' ') || '';
 
     return (
@@ -81,7 +88,6 @@ const DoctorsPage: React.FC<DoctorsPageProps> = ({
 
   return result;
  }, [doctors, selectedSpecialty, searchTerm]);
-
  return (
   <div className="max-w-7xl mx-auto px-6 py-10 md:py-16">
    {/* Header & Search */}

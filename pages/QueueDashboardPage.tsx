@@ -46,6 +46,8 @@ const QueueDashboardPage = () => {
    clinicId={bookingData.clinic_id}
    doctorName={bookingData.doctorName}
    doctorLocation={bookingData.branchName}
+   initialCurrentServing={bookingData.current_serving_number} // ✅ هنا
+
   // lat={bookingData.lat} 
   // lng={bookingData.lng}
   />

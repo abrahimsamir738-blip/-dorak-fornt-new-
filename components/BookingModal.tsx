@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Loader2, Clock, CheckCircle2, AlertCircle, CreditCard, Phone, User } from 'lucide-react';
+import { X, MapPin, Loader2, Clock, CheckCircle2, AlertCircle, CreditCard, Phone, User, Stethoscope, ClipboardList } from 'lucide-react';
 import { Doctor, Branch } from '../types';
 import { publicAPI } from '../services/api';
 
@@ -22,7 +22,8 @@ interface BookingModalProps {
   name: string,
   phone: string,
   branch: Branch,
-  selectedSlot: TimeSlot
+  selectedSlot: TimeSlot,
+  visitType: 'checkup' | 'consultation' // 🆕 نوع الزيارة
  ) => void;
 }
 
@@ -36,23 +37,27 @@ const daysOfWeek = [
  { id: 6, name: 'الجمعة', short: 'جمعة' },
 ];
 
-const BookingModal: React.FC<BookingModalProps> = ({
- isOpen,
- onClose,
- doctor,
- onConfirm,
-}) => {
+const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, doctor, onConfirm }) => {
  const [name, setName] = useState('');
  const [phone, setPhone] = useState('');
  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
  const [selectedDay, setSelectedDay] = useState<number | null>(null);
- const [selectedDayName, setSelectedDayName] = useState<string | null>(null);
  const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
- const isInitialMount = useRef(true);
+ const [visitType, setVisitType] = useState<'checkup' | 'consultation'>('checkup'); // 🆕
 
- // --- منطق استعادة البيانات تلقائياً ---
+ // تحويل الوقت من 24 إلى 12 ساعة بصيغة عربية
+ const formatTimeTo12Hour = (time24: string) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'م' : 'ص';
+  let hours12 = hours % 12;
+  hours12 = hours12 === 0 ? 12 : hours12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+ };
+
+ // استعادة بيانات المستخدم من localStorage
  useEffect(() => {
   if (isOpen) {
    const savedUser = localStorage.getItem('dorak_user');
@@ -62,115 +67,98 @@ const BookingModal: React.FC<BookingModalProps> = ({
      if (userData.name) setName(userData.name);
      if (userData.phone) setPhone(userData.phone);
     } catch (e) {
-     console.error("Error parsing saved user", e);
+     console.error('Error parsing saved user', e);
     }
    }
   }
  }, [isOpen]);
 
- // Select first branch when modal opens
+ // اختيار أول عيادة تلقائياً عند فتح المودال
  useEffect(() => {
   if (isOpen && doctor.branches?.length && !selectedBranch) {
-   const firstBranch = doctor.branches[0];
-   setSelectedBranch(firstBranch);
+   setSelectedBranch(doctor.branches[0]);
   }
  }, [isOpen, doctor.branches, selectedBranch]);
 
+ // جلب المواعيد من API للعيادة المختارة
  const fetchSchedulesForBranch = useCallback(async (branchId: string | number) => {
   setIsLoadingSlots(true);
   try {
    const doctorData = await publicAPI.getDoctor(doctor.id);
-   const clinicData = doctorData.clinics?.find((c: any) =>
-    c.id.toString() === branchId.toString()
-   );
+   const clinicData = doctorData.clinics?.find((c: any) => c.id.toString() === branchId.toString());
    const timeSlotsData = clinicData?.time_slots || [];
 
-   const transformedSlots: TimeSlot[] = timeSlotsData.map((slot: any) => {
-    const startTime = slot.start_time ? slot.start_time.substring(0, 5) : '';
-    const endTime = slot.end_time ? slot.end_time.substring(0, 5) : '';
-    return {
-     id: slot.id,
-     day_of_week: slot.day_of_week,
-     day_name: slot.day_name,
-     start_time: startTime,
-     end_time: endTime,
-     capacity: slot.capacity || 0,
-     booked_count: slot.booked_count || 0,
-    };
-   });
+   const transformedSlots: TimeSlot[] = timeSlotsData.map((slot: any) => ({
+    id: slot.id,
+    day_of_week: slot.day_of_week,
+    day_name: slot.day_name,
+    start_time: slot.start_time ? slot.start_time.substring(0, 5) : '',
+    end_time: slot.end_time ? slot.end_time.substring(0, 5) : '',
+    capacity: slot.capacity || 0,
+    booked_count: slot.booked_count || 0,
+   }));
 
    setAvailableSlots(transformedSlots);
-
-   if (transformedSlots.length > 0 && isInitialMount.current) {
-    const firstSlot = transformedSlots[0];
-    setSelectedDay(firstSlot.day_of_week);
-    setSelectedDayName(firstSlot.day_name);
-    isInitialMount.current = false;
-   } else if (transformedSlots.length === 0) {
-    setSelectedDay(null);
-    setSelectedDayName(null);
-   }
+   setSelectedDay(null);
+   setSelectedSlot(null);
   } catch (error) {
-   console.error('❌ Failed to fetch schedules:', error);
+   console.error('Failed to fetch schedules:', error);
    setAvailableSlots([]);
   } finally {
    setIsLoadingSlots(false);
   }
  }, [doctor.id]);
 
- // تأكد من إضافة هذه الدالة قبل سطر الـ return
- const handleDaySelect = (dayId: number) => {
-  const dayName = daysOfWeek[dayId]?.name;
-  setSelectedDay(dayId);
-  setSelectedDayName(dayName || null);
-  setSelectedSlot(null); // نصيحة: تصفير الموعد عند تغيير اليوم لتجنب الخطأ
- };
-
  useEffect(() => {
   if (selectedBranch && isOpen) {
-   isInitialMount.current = true;
-   setSelectedSlot(null);
-   setSelectedDay(null);
-   setSelectedDayName(null);
    fetchSchedulesForBranch(selectedBranch.id);
   }
  }, [selectedBranch?.id, isOpen, fetchSchedulesForBranch]);
 
+ // الأيام المتاحة (اللي لها مواعيد في الـ API)
  const availableDays = useMemo(() => {
   if (availableSlots.length === 0) return [];
   const daysWithSlots = new Set(availableSlots.map(slot => slot.day_of_week));
   return daysOfWeek.filter(day => daysWithSlots.has(day.id));
  }, [availableSlots]);
 
+ // فلترة المواعيد حسب اليوم المختار (باستخدام day_of_week)
  const filteredSlots = useMemo(() => {
-  if (!selectedDayName) return [];
-  return availableSlots.filter(slot => slot.day_name === selectedDayName);
- }, [availableSlots, selectedDayName]);
+  if (selectedDay === null) return [];
+  return availableSlots.filter(slot => slot.day_of_week === selectedDay);
+ }, [availableSlots, selectedDay]);
 
- // Reset form when modal closes (except for auto-filled data if you prefer)
- useEffect(() => {
-  if (!isOpen) {
-   setSelectedSlot(null);
-   setSelectedDay(null);
-   setSelectedDayName(null);
-   isInitialMount.current = true;
-  }
- }, [isOpen]);
+ const handleDaySelect = (dayId: number) => {
+  setSelectedDay(dayId);
+  setSelectedSlot(null);
+ };
 
  const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
   if (name && phone && selectedBranch && selectedSlot) {
-   // حفظ رقم الهاتف في القائمة كما في طلبك السابق
    const existingPhones: string[] = JSON.parse(localStorage.getItem('dorak_user_phones') || '[]');
    if (!existingPhones.includes(phone)) {
     existingPhones.push(phone);
     localStorage.setItem('dorak_user_phones', JSON.stringify(existingPhones));
    }
-   onConfirm(name, phone, selectedBranch, selectedSlot);
+   // حفظ بيانات المستخدم
+   localStorage.setItem('dorak_user', JSON.stringify({ name, phone }));
+   // 🆕 تمرير visitType مع باقي البيانات
+   onConfirm(name, phone, selectedBranch, selectedSlot, visitType);
   } else {
    alert('من فضلك أكمل جميع البيانات');
   }
  };
+
+ // إعادة تعيين الحالة عند إغلاق المودال
+ useEffect(() => {
+  if (!isOpen) {
+   setSelectedSlot(null);
+   setSelectedDay(null);
+   setAvailableSlots([]);
+   setVisitType('checkup'); // 🆕 إعادة تعيين نوع الزيارة
+  }
+ }, [isOpen]);
 
  return (
   <AnimatePresence>
@@ -234,8 +222,37 @@ const BookingModal: React.FC<BookingModalProps> = ({
        </div>
       </div>
 
+      {/* 🆕 قسم اختيار نوع الزيارة */}
+      <div className="mb-8">
+       <label className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-4">نوع الزيارة</label>
+       <div className="grid grid-cols-2 gap-3">
+        <button
+         type="button"
+         onClick={() => setVisitType('checkup')}
+         className={`p-4 rounded-2xl border-2 text-center transition-all flex items-center justify-center gap-3 ${visitType === 'checkup'
+          ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600'
+          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+          }`}
+        >
+         <Stethoscope size={22} />
+         <span className="font-black">كشف</span>
+        </button>
+        <button
+         type="button"
+         onClick={() => setVisitType('consultation')}
+         className={`p-4 rounded-2xl border-2 text-center transition-all flex items-center justify-center gap-3 ${visitType === 'consultation'
+          ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600'
+          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+          }`}
+        >
+         <ClipboardList size={22} />
+         <span className="font-black">استشارة</span>
+        </button>
+       </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-8">
-       {/* 1. اختيار العيادة */}
+       {/* اختيار العيادة */}
        <div>
         <label className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-4">اختر العيادة</label>
         <div className="grid gap-3">
@@ -249,9 +266,11 @@ const BookingModal: React.FC<BookingModalProps> = ({
              type="button"
              disabled={isClosed}
              onClick={() => { if (!isClosed) setSelectedBranch(branch); }}
-             className={`p-4 rounded-2xl border-2 text-right transition-all relative ${isClosed ? 'border-rose-300 bg-rose-50 dark:bg-rose-900/10 opacity-75 cursor-not-allowed' :
-              isSelected ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' :
-               'border-slate-200 dark:border-slate-800'
+             className={`p-4 rounded-2xl border-2 text-right transition-all relative ${isClosed
+              ? 'border-rose-300 bg-rose-50 dark:bg-rose-900/10 opacity-75 cursor-not-allowed'
+              : isSelected
+               ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+               : 'border-slate-200 dark:border-slate-800'
               }`}
             >
              <div className="flex justify-between items-center">
@@ -264,64 +283,82 @@ const BookingModal: React.FC<BookingModalProps> = ({
             </button>
            );
           })
-         ) : <p className="text-center text-slate-400">لا توجد عيادات</p>}
+         ) : (
+          <p className="text-center text-slate-400">لا توجد عيادات</p>
+         )}
         </div>
        </div>
 
-       {/* 2. اختيار اليوم */}
+       {/* اختيار اليوم */}
        {selectedBranch && !selectedBranch.isClosedToday && availableDays.length > 0 && (
         <div>
-         <label className="text-xs font-blue text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-4">اختر اليوم</label>
+         <label className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-4">اختر اليوم</label>
          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {availableDays.map((day) => (
            <button
             key={day.id}
             type="button"
             onClick={() => handleDaySelect(day.id)}
-
-
+            className={`px-6 py-3 rounded-2xl font-black transition-all whitespace-nowrap ${selectedDay === day.id
+             ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+             : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+             }`}
            >
-            {day.short}
+            {day.name}
            </button>
           ))}
          </div>
         </div>
        )}
 
-       {/* 3. المواعيد */}
-       <div>
-        <label className="text-xs font-blue text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-4">المواعيد المتاحة</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+       {/* المواعيد المتاحة */}
+       {selectedDay !== null && (
+        <div>
+         <label className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-4">
+          اختر المواعيد المتاحة ليوم {daysOfWeek.find(d => d.id === selectedDay)?.name}
+         </label>
          {isLoadingSlots ? (
-          <div className="col-span-full flex justify-center py-8"><Loader2 className="animate-spin text-blue-600" /></div>
-         ) : filteredSlots.map((slot) => {
-          const isSelected = selectedSlot?.id === slot.id;
-          const isFull = (slot.capacity - slot.booked_count) <= 0;
-          return (
-           <button
-            key={slot.id}
-            type="button"
-            disabled={isFull}
-            onClick={() => setSelectedSlot(slot)}
-            className={`p-4 rounded-xl border-2 text-center transition-all ${isSelected ? 'border-blue-600 bg-blue-600 text-white shadow-lg' :
-             isFull ? 'opacity-40 cursor-not-allowed bg-slate-100' : 'border-slate-200 dark:border-slate-800'
-             }`}
-           >
-            <div className="font-blue text-sm">
-
-             {`${slot.start_time} - ${slot.end_time}`}
-            </div>            {/* <div className="text-[10px] mt-1 opacity-70">متبقي {slot.capacity - slot.booked_count}</div> */}
-           </button>
-          );
-         })}
+          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-600" size={32} /></div>
+         ) : filteredSlots.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+           {filteredSlots.map((slot) => {
+            const isSelected = selectedSlot?.id === slot.id;
+            const isFull = (slot.capacity - slot.booked_count) <= 0;
+            const start12 = formatTimeTo12Hour(slot.start_time);
+            const end12 = formatTimeTo12Hour(slot.end_time);
+            return (
+             <button
+              key={slot.id}
+              type="button"
+              disabled={isFull}
+              onClick={() => setSelectedSlot(slot)}
+              className={`p-4 rounded-xl border-2 text-center transition-all ${isSelected
+               ? 'border-blue-600 bg-blue-600 text-white shadow-lg'
+               : isFull
+                ? 'opacity-30 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                : 'border-slate-200 bg-white dark:bg-white text-slate-900 dark:text-slate-900 hover:border-blue-500'
+               }`}
+             >
+              <div className="font-black text-base italic">
+               {`${start12} - ${end12}`}
+              </div>
+             </button>
+            );
+           })}
+          </div>
+         ) : (
+          <div className="text-center py-8 text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-xl">
+           <Clock className="mx-auto mb-2 opacity-50" size={32} />
+           <p className="font-bold">لا توجد مواعيد متاحة لهذا اليوم</p>
+          </div>
+         )}
         </div>
-       </div>
+       )}
 
-       {/* 4. البيانات الشخصية */}
+       {/* البيانات الشخصية */}
        <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
-         <label className="block text-xs font-blue text -slate-600 dark:text-blue-300 uppercase tracking-widest">اسم المريض الكامل</label>
-
+         <label className="block text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">اسم المريض الكامل</label>
          <div className="relative">
           <User className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
@@ -329,7 +366,7 @@ const BookingModal: React.FC<BookingModalProps> = ({
            required
            value={name}
            onChange={(e) => setName(e.target.value)}
-           className="w-full pr-12 pl-4 py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 outline-none focus:border-blue-600 transition-all font-bold"
+           className="w-full pr-12 pl-4 py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 outline-none focus:border-blue-600 transition-all font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white"
            placeholder="الاسم كما في البطاقة"
           />
          </div>
@@ -343,14 +380,13 @@ const BookingModal: React.FC<BookingModalProps> = ({
            required
            value={phone}
            onChange={(e) => setPhone(e.target.value)}
-           className="w-full pr-12 pl-4 py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 outline-none focus:border-blue-600 transition-all font-bold"
+           className="w-full pr-12 pl-4 py-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 outline-none focus:border-blue-600 transition-all font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white"
            placeholder="01xxxxxxxxx"
           />
          </div>
         </div>
        </div>
 
-       {/* زر التأكيد */}
        <button
         type="submit"
         disabled={!selectedSlot || !name || !phone}
