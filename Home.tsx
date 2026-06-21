@@ -18,23 +18,19 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
  const handleSpecialtyClick = (type: string) => {
   const spec = type as SpecialtyType;
   setSelectedSpecialty(spec);
-
-  // Example: Filter doctors by title when clicking specialty
-  // This demonstrates the filterDoctorsByTitle function usage
   const specialtyLabel = SPECIALTY_LABELS[spec];
   if (specialtyLabel) {
-   // Filter doctors by specialty title (e.g., "رمد" for Ophthalmology)
    const filteredByTitle = filterDoctorsByTitle(doctors, specialtyLabel);
    console.log(`Dorak: Found ${filteredByTitle.length} doctors with title matching "${specialtyLabel}"`);
   }
-
   navigate(`/doctors?specialty=${spec}`);
  };
 
  const featuredDoctors = useMemo(() => doctors.slice(0, 3), [doctors]);
 
  return (
-  <div className="flex flex-col items-center overflow-x-hidden bg-white dark:bg-slate-950" dir="rtl">
+  <div className="flex flex-col items-center w-full max-w-full overflow-x-hidden bg-white dark:bg-slate-950" dir="rtl">
+
    {/* Hero Section */}
    <section className="w-full pt-16 md:pt-28 pb-20 md:pb-32 px-4 md:px-12 lg:px-24 hero-gradient text-center">
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-5 py-2 rounded-full mb-8 border border-blue-100 dark:border-blue-800">
@@ -84,7 +80,7 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
 
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
      {specialties.map((spec) => (
-      <div key={spec.type}>
+      <div key={spec.type} className="w-full">
        <SpecialtyCard
         specialty={spec}
         isSelected={selectedSpecialty === spec.type}
@@ -101,13 +97,13 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
      <h2 className="text-3xl md:text-5xl font-[1000] text-slate-900 dark:text-white mb-3 tracking-tighter">أطباء متميزون</h2>
      <p className="text-slate-400 font-bold text-sm md:text-xl">الأكثر كفاءة وحجزاً عبر منصتنا هذا الأسبوع</p>
     </div>
+
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-     {specialties.map((spec) => (
-      <div key={spec.type}>
-       <SpecialtyCard
-        specialty={spec}
-        isSelected={selectedSpecialty === spec.type}
-        onClick={handleSpecialtyClick}
+     {featuredDoctors.map((doctor) => (
+      <div key={doctor.id} className="w-full">
+       <DoctorCard
+        doctor={doctor}
+        onBookNow={onBookNow}
        />
       </div>
      ))}
@@ -123,6 +119,7 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
      </button>
     </div>
    </section>
+
   </div>
  );
 };
