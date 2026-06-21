@@ -82,9 +82,9 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
      </button>
     </div>
 
-    <div className="flex overflow-x-auto md:grid md:grid-cols-4 gap-4 md:gap-8 pb-6 md:pb-0 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
      {specialties.map((spec) => (
-      <div key={spec.type} className="min-w-[160px] md:min-w-0">
+      <div key={spec.type}>
        <SpecialtyCard
         specialty={spec}
         isSelected={selectedSpecialty === spec.type}
