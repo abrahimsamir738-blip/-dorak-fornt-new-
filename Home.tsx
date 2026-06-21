@@ -65,7 +65,7 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
     </div>
    </section>
 
-   {/* Specialties Section */}
+   {/* Specialties Section - 3 per row on mobile */}
    <section className="w-full max-w-7xl px-4 md:px-12 py-16 md:py-24">
     <div className="flex flex-row-reverse justify-between items-end mb-10 md:mb-14 px-2">
      <div className="text-right">
@@ -78,7 +78,8 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
      </button>
     </div>
 
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+    {/* 3 columns on mobile, 4 on desktop */}
+    <div className="grid grid-cols-3 md:grid-cols-4 gap-3 md:gap-8">
      {specialties.map((spec) => (
       <div key={spec.type} className="w-full">
        <SpecialtyCard
@@ -91,14 +92,15 @@ const Home: React.FC<{ searchTerm: string; setSearchTerm: (v: string) => void; o
     </div>
    </section>
 
-   {/* Featured Doctors Section */}
+   {/* Featured Doctors Section - 1 per row on mobile */}
    <section className="w-full max-w-7xl px-4 md:px-12 pb-24 md:pb-32 bg-slate-50/50 dark:bg-transparent rounded-[60px] py-16 md:py-24">
     <div className="text-right mb-12 md:mb-16">
      <h2 className="text-3xl md:text-5xl font-[1000] text-slate-900 dark:text-white mb-3 tracking-tighter">أطباء متميزون</h2>
      <p className="text-slate-400 font-bold text-sm md:text-xl">الأكثر كفاءة وحجزاً عبر منصتنا هذا الأسبوع</p>
     </div>
 
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+    {/* 1 column on mobile, 3 on desktop */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
      {featuredDoctors.map((doctor) => (
       <div key={doctor.id} className="w-full">
        <DoctorCard
