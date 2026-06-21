@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
- '  https://tracie-rarefactive-evia.ngrok-free.dev/api';
+ '   https://tracie-rarefactive-evia.ngrok-free.dev/api';
 
 // Create axios instance for website (no auth required)
 const api: AxiosInstance = axios.create({
