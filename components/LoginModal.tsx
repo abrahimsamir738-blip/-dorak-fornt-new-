@@ -142,7 +142,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
         {isLoginView ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
        </h2>
        <p className="text-slate-400 text-sm font-bold">
-        {isLoginView ? 'أهلاً بك مجدداً في منصة دورك' : 'انضم إلينا لتنظيم حجوزاتك الطبية بسهولة'}
+        {isLoginView ? 'أهلاً بك مجدداً في منصة  عياداتي كير' : 'انضم إلينا لتنظيم حجوزاتك الطبية بسهولة'}
        </p>
       </div>
 

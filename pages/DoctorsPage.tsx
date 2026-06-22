@@ -94,7 +94,7 @@ const DoctorsPage: React.FC<DoctorsPageProps> = ({
    <div className="flex flex-col md:flex-row-reverse items-center justify-between mb-10 md:mb-16 gap-8 text-right">
     <div className="w-full md:w-auto">
      <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-2">
-      دليل أطباء دورك
+      دليل أطباء عياداتي كير
      </h1>
      <p className="text-lg text-slate-500 font-bold">
       {selectedSpecialty ? `تخصص ${SPECIALTY_LABELS[selectedSpecialty]}: ` : ''}
