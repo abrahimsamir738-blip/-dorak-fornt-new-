@@ -81,9 +81,20 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onViewProfile, onBookNo
        {/* <span className="opacity-60">({doctor.reviewsCount} تقييم)</span> */}
       </div>
       <div className="w-1.5 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full" />
-      <div className="flex flex-row-reverse items-center gap-1.5">
-       <MapPin size={16} />
-       <span>{doctor.location}</span>
+      <div className="flex flex-col gap-1 items-end md:items-start">
+       {doctor.branches && doctor.branches.length > 0 ? (
+        doctor.branches.map(branch => (
+         <div key={branch.id} className="flex flex-row-reverse items-center gap-1.5">
+          <MapPin size={14} />
+          <span>{branch.name} - {branch.address}</span>
+         </div>
+        ))
+       ) : (
+        <div className="flex flex-row-reverse items-center gap-1.5">
+         <MapPin size={14} />
+         <span>{doctor.location}</span>
+        </div>
+       )}
       </div>
      </div>
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { Routes, Route, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -7,15 +6,15 @@ import { DOCTORS, SPECIALTIES, SPECIALTY_LABELS } from './constants';
 import { publicAPI } from './services/api';
 import { transformDoctor } from './utils/dataTransform';
 import Layout from './components/Layout';
+import { useLogin } from './components/Layout';
 import Home from './Home';
 import DoctorsPage from './pages/DoctorsPage';
 import BookingPage from './pages/BookingPage';
 import BookingModal from './components/BookingModal';
 import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
-import QueueDashboardPage from './pages/QueueDashboardPage'
+import QueueDashboardPage from './pages/QueueDashboardPage';
 
-// Context Interface
 interface DataContextType {
  doctors: Doctor[];
  specialties: Specialty[];
@@ -44,16 +43,16 @@ const PageWrapper: React.FC<{ children?: React.ReactNode }> = ({ children }) => 
  </motion.div>
 );
 
-const App: React.FC = () => {
+// مكون داخلي يستخدم useLogin بعد ما الـ LoginContext يكون متاح
+const AppInner: React.FC = () => {
  const location = useLocation();
  const navigate = useNavigate();
  const [searchParams] = useSearchParams();
+ const { openLogin } = useLogin();
 
- // 1. Initial Data State (Load from constants or API)
  const [doctors, setDoctors] = useState<Doctor[]>([]);
  const [specialties, setSpecialties] = useState<Specialty[]>([]);
 
- // 2. Filter States with LocalStorage recovery
  const [searchTerm, setSearchTerm] = useState(() =>
   localStorage.getItem('dorak_search') || ''
  );
@@ -64,45 +63,42 @@ const App: React.FC = () => {
 
  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
  const [activeDoctor, setActiveDoctor] = useState<Doctor | null>(null);
- const [showLogin, setShowLogin] = useState(false); // ← هنا
- // 3. Load doctors from API
+
+ const [bookingFlow, setBookingFlow] = useState<{
+  step: 1 | 2 | 3;
+  doctor: Doctor | null;
+  branch: Branch | null;
+  booking: Booking | null;
+ }>({ step: 1, doctor: null, branch: null, booking: null });
+
  useEffect(() => {
   const loadDoctors = async () => {
    try {
-    // Try to load from API
     const backendDoctors = await publicAPI.getDoctors();
     const transformedDoctors = backendDoctors.map(transformDoctor);
-
     if (transformedDoctors.length > 0) {
      setDoctors(transformedDoctors);
      localStorage.setItem('dorak_docs_cache', JSON.stringify(transformedDoctors));
     } else {
-     // Fallback to constants if no doctors in backend
      setDoctors(DOCTORS);
      localStorage.setItem('dorak_docs_cache', JSON.stringify(DOCTORS));
     }
    } catch (error) {
-    console.error('Failed to load doctors from API, using cached or default data:', error);
-    // Try cached data first
+    console.error('Failed to load doctors from API:', error);
     const cachedDocs = localStorage.getItem('dorak_docs_cache');
     if (cachedDocs) {
      setDoctors(JSON.parse(cachedDocs));
     } else {
-     // Fallback to constants
      setDoctors(DOCTORS);
     }
    }
   };
 
-  // Load specialties (static for now)
   setSpecialties(SPECIALTIES);
   localStorage.setItem('dorak_specs_cache', JSON.stringify(SPECIALTIES));
-
-  // Load doctors from API
   loadDoctors();
  }, []);
 
- // 4. Persistence Sync
  useEffect(() => {
   localStorage.setItem('dorak_search', searchTerm);
  }, [searchTerm]);
@@ -118,15 +114,12 @@ const App: React.FC = () => {
  useEffect(() => {
   const specParam = searchParams.get('specialty');
   if (specParam) {
-   // Try to find the specialty by enum value (e.g., "Ophthalmology")
    const found = Object.values(SpecialtyType).find(
     v => v.toLowerCase() === specParam.toLowerCase()
    );
    if (found) {
     setSelectedSpecialty(found as SpecialtyType);
    } else {
-    // If not found by enum value, try to find by Arabic label
-    // This handles cases where URL might have Arabic text
     const specialtyByLabel = Object.entries(SPECIALTY_LABELS).find(
      ([_, label]) => label.toLowerCase() === specParam.toLowerCase()
     );
@@ -135,19 +128,16 @@ const App: React.FC = () => {
     }
    }
   } else {
-   // Clear selection if no specialty param
    setSelectedSpecialty(null);
   }
- }, [searchParams, setSelectedSpecialty]);
-
- const [bookingFlow, setBookingFlow] = useState<{
-  step: 1 | 2 | 3;
-  doctor: Doctor | null;
-  branch: Branch | null;
-  booking: Booking | null;
- }>({ step: 1, doctor: null, branch: null, booking: null });
+ }, [searchParams]);
 
  const handleStartBooking = (doctor: Doctor) => {
+  const token = localStorage.getItem('dorak_token');
+  if (!token) {
+   openLogin();
+   return;
+  }
   setActiveDoctor(doctor);
   setIsBookingModalOpen(true);
  };
@@ -163,7 +153,6 @@ const App: React.FC = () => {
    branchName: branch.name,
    branchAddress: branch.address,
    turnNumber: booking.turnNumber,
-   // Fix: booking.bookedAt is already a string according to the Booking interface (line 127)
    bookedAt: booking.bookedAt,
    lat: branch.lat,
    lng: branch.lng
@@ -171,7 +160,6 @@ const App: React.FC = () => {
   localStorage.setItem('userBookings', JSON.stringify([bookingToSave, ...savedBookings]));
  };
 
- // Create booking via API
  const handleConfirmBooking = async (
   name: string,
   phone: string,
@@ -181,37 +169,29 @@ const App: React.FC = () => {
  ) => {
   try {
    const getNextDateForDay = (dayOfWeek: number): string => {
-    // النظام: 0=السبت، 1=الأحد، ... 6=الجمعة
-    // JavaScript: 0=الأحد، 1=الاثنين، ... 6=السبت
-    const jsToApp = [6, 0, 1, 2, 3, 4, 5]; // تحويل من نظامك لنظام JS
+    const jsToApp = [6, 0, 1, 2, 3, 4, 5];
     const targetJsDay = jsToApp[dayOfWeek];
-
     const today = new Date();
     const currentJsDay = today.getDay();
-
     let daysUntilTarget = targetJsDay - currentJsDay;
     if (daysUntilTarget < 0) daysUntilTarget += 7;
-    // لو نفس اليوم النهارده يبقى النهارده، غير كده أقرب يوم جاي
-
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + daysUntilTarget);
-
     return targetDate.toISOString().split('T')[0];
    };
-   const bookingDate = getNextDateForDay(selectedSlot.day_of_week);
 
+   const bookingDate = getNextDateForDay(selectedSlot.day_of_week);
 
    const response = await publicAPI.createBooking({
     clinic_id: parseInt(branch.id),
     doctor_id: parseInt(activeDoctor!.id),
     patient_name: name,
     phone_number: phone,
-    type: visitType === 'checkup' ? 'كشف' : 'استشارة', // ✅
+    type: visitType === 'checkup' ? 'كشف' : 'استشارة',
     date: bookingDate,
     notes: '',
    });
 
-   // Create booking object for frontend
    const newBooking: Booking = {
     id: response.order.id.toString(),
     patientName: name,
@@ -230,7 +210,6 @@ const App: React.FC = () => {
    };
 
    saveToHistory(newBooking, activeDoctor!, branch);
-
    setBookingFlow({ step: 3, doctor: activeDoctor, branch, booking: newBooking });
    setIsBookingModalOpen(false);
    navigate('/booking');
@@ -267,8 +246,6 @@ const App: React.FC = () => {
         />
        </PageWrapper>
       } />
-
-
 
       <Route path="/doctors" element={
        <PageWrapper>
@@ -319,6 +296,14 @@ const App: React.FC = () => {
     )}
    </Layout>
   </DataContext.Provider>
+ );
+};
+
+const App: React.FC = () => {
+ return (
+  <Layout>
+   <AppInner />
+  </Layout>
  );
 };
 

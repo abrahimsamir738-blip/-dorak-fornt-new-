@@ -9,6 +9,8 @@ import LoginModal from './LoginModal';
 
 interface LayoutProps {
  children: React.ReactNode;
+ onLoginRequired?: (callback?: () => void) => void;
+
 }
 
 const I18nContext = createContext<{
@@ -22,8 +24,10 @@ const I18nContext = createContext<{
 });
 
 export const useI18n = () => useContext(I18nContext);
-
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+// أضف هنا
+export const LoginContext = createContext<{ openLogin: () => void }>({ openLogin: () => { } });
+export const useLogin = () => useContext(LoginContext);
+const Layout: React.FC<LayoutProps> = ({ children, onLoginRequired }) => {
  const [isDark, setIsDark] = useState(false);
  const [lang, setLang] = useState<LangType>('ar');
  const [showLogin, setShowLogin] = useState(false);
@@ -113,8 +117,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
  ];
 
  return (
-  <I18nContext.Provider value={{ lang, t, setLang }}>
-   <div className="flex flex-col min-h-screen transition-colors duration-500 bg-slate-50 dark:bg-slate-950 font-cairo overflow-x-hidden" dir="rtl">
+  <LoginContext.Provider value={{ openLogin: () => setShowLogin(true) }}>
+   <I18nContext.Provider value={{ lang, t, setLang }}>   <div className="flex flex-col min-h-screen transition-colors duration-500 bg-slate-50 dark:bg-slate-950 font-cairo overflow-x-hidden" dir="rtl">
 
     {/* Navigation Header */}
     <header className="fixed top-0 left-0 right-0 h-20 md:h-28 bg-white/90 dark:bg-slate-950/90 backdrop-blur-2xl border-b border-slate-100 dark:border-slate-900 z-[100] px-4 md:px-12 lg:px-24">
@@ -311,8 +315,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
      onLoginSuccess={handleLoginSuccess}
     />
    </div>
-  </I18nContext.Provider>
- );
+   </I18nContext.Provider>
+  </LoginContext.Provider>);
 };
 
 export default Layout;
