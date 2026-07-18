@@ -300,11 +300,7 @@ const AppInner: React.FC = () => {
 };
 
 const App: React.FC = () => {
- return (
-  <Layout>
-   <AppInner />
-  </Layout>
- );
+ return <AppInner />;
 };
 
 export default App;
